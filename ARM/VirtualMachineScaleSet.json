@@ -1,0 +1,178 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroup": {
+            "type": "object",
+            "defaultValue": "[resourceGroup()]"
+        },
+        "vmssLocation": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
+        "virtualMachineScaleSetName": {
+            "type": "string"
+        },
+        "instanceSize": {
+            "type": "string"
+        },
+        "instanceCount": {
+            "type": "string"
+        },
+        "priority": {
+            "type": "string"
+        },
+        "osDiskType": {
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "subnetName": {
+            "type": "string"
+        },
+        "networkSecurityGroupName": {
+            "type": "string"
+        },
+        "scaleInPolicy": {
+            "type": "object"
+        },
+        "upgradePolicy": {
+            "type": "string"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "secureString"
+        },
+        "healthExtensionProtocol": {
+            "type": "string"
+        },
+        "healthExtensionPort": {
+            "type": "int"
+        },
+        "healthExtensionRequestPath": {
+            "type": "string"
+        },
+        "autoRepairsPolicyEnabled": {
+            "type": "bool"
+        },
+        "gracePeriod": {
+            "type": "string"
+        },
+        "platformFaultDomainCount": {
+            "type": "string"
+        },
+        "networkSecurityGroupRules": {
+            "type": "array"
+        }
+    },
+    "variables": {
+        "namingInfix": "[toLower(substring(concat(parameters('virtualMachineScaleSetName'), uniqueString(parameters('resourceGroup').id)), 0, 9))]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('networkSecurityGroupName')]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-05-01",
+            "location": "[parameters('vmssLocation')]",
+            "properties": {
+                "securityRules": "[parameters('networkSecurityGroupRules')]"
+            }
+        },
+        {
+            "name": "[parameters('virtualMachineScaleSetName')]",
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('vmssLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
+            ],
+            "sku": {
+                "name": "[parameters('instanceSize')]",
+                "capacity": "[int(parameters('instanceCount'))]"
+            },
+            "properties": {
+                "overprovision": "false",
+                "upgradePolicy": {
+                    "mode": "[parameters('upgradePolicy')]",
+                    "automaticOSUpgradePolicy": {
+                        "enableAutomaticOSUpgrade": false
+                    }
+                },
+                "singlePlacementGroup": false,
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "osDisk": {
+                            "createOption": "fromImage",
+                            "caching": "ReadWrite",
+                            "managedDisk": {
+                                "storageAccountType": "[parameters('osDiskType')]"
+                            }
+                        },
+                        "imageReference": {
+                            "publisher": "MicrosoftWindowsServer",
+                            "offer": "WindowsServer",
+                            "sku": "2019-Datacenter",
+                            "version": "latest"
+                        }
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[concat(parameters('virtualMachineScaleSetName'), '-nic')]",
+                                "properties": {
+                                    "primary": true,
+                                    "enableAcceleratedNetworking": false,
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "nic-defaultIpConfiguration",
+                                            "properties": {
+                                                "subnet": {
+                                                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('subnetName'))]"
+                                                },
+                                                "primary": true,
+                                                "applicationGatewayBackendAddressPools": [],
+                                                "loadBalancerBackendAddressPools": [],
+                                                "loadBalancerInboundNatPools": [],
+                                                "publicIPAddressConfiguration": "[json('null')]"
+                                            }
+                                        }
+                                    ],
+                                    "networkSecurityGroup": {
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "priority": "[parameters('priority')]",
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('namingInfix')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]",
+                        "windowsConfiguration": {
+                            "provisionVmAgent": true
+                        }
+                    }
+                },
+                "scaleInPolicy": "[parameters('scaleInPolicy')]",
+                "automaticRepairsPolicy": {
+                    "enabled": "[parameters('autoRepairsPolicyEnabled')]",
+                    "gracePeriod": "[parameters('gracePeriod')]"
+                },
+                "platformFaultDomainCount": "[parameters('platformFaultDomainCount')]"
+            },
+            "identity": {
+                "type": "systemAssigned"
+            }
+        }
+    ],
+    "outputs": {
+        "adminUsername": {
+            "type": "string",
+            "value": "[parameters('adminUsername')]"
+        }
+    }
+}

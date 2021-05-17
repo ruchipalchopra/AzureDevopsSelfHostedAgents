@@ -1,0 +1,48 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "networkSecurityGroupName": {
+        "value": "privateagent-nsg"
+        },
+        "networkSecurityGroupLocation": {
+          "value": "australiaeast"
+      },
+      "vnetName": {
+          "value": "privateagent-vnet"
+      },
+      "vnetCidr": {
+          "value": "10.1.0.0/16"
+      },
+      "vnetLocation": {
+          "value": "australiaeast"
+      },
+      "agentSubnetName": {
+          "value": "privateagent-subnet"
+      },
+      "agentSubnetCidr": {
+          "value": "10.1.0.0/24"
+      },
+      "networkSecurityGroupRules": {
+          "value": [
+              {
+                  "name": "devops_inbound_deny_all",
+                  "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Inbound",
+                      "sourcePortRanges": [],
+                      "destinationPortRanges": [],
+                      "sourceAddressPrefixes": [],
+                      "destinationAddressPrefixes": []
+                  }
+              }
+          ]
+      }
+  }
+}

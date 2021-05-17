@@ -1,0 +1,15 @@
+﻿<Properties StartupConfiguration="{65666408-8704-458D-B93C-2B9F975C5C31}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="DeployAzureARMTemplate.cs">
+    <Files>
+      <File FileName="DeployAzureARMTemplate.cs" Line="4" Column="33" />
+      <File FileName="IDeployAzureARMTemplate.cs" Line="4" Column="45" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MultiItemStartupConfigurations />
+  <MonoDevelop.Ide.ItemProperties.AzureDevopsSelfHostedAgents PreferredExecutionTarget="MonoDevelop.Default" />
+</Properties>

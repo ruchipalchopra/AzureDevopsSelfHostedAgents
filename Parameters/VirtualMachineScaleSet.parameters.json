@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "virtualMachineScaleSetName": {
+      "value": "privateagent-vmss"
+    },
+    "instanceSize": {
+      "value": "Standard_B2s"
+    },
+    "instanceCount": {
+      "value": "1"
+    },
+    "priority": {
+      "value": "Regular"
+    },
+    "osDiskType": {
+      "value": "Standard_LRS"
+    },
+    "virtualNetworkName": {
+      "value": "privateagent-vnet"
+    },
+    "subnetName": {
+      "value": "privateagent-subnet"
+    },
+    "networkSecurityGroupName": {
+      "value": "privateagent-nsg"
+    },
+    "scaleInPolicy": {
+      "value": {
+        "rules": ["Default"]
+      }
+    },
+    "upgradePolicy": {
+      "value": "Manual"
+    },
+    "adminUsername": {
+      "value": "Devopsadmin"
+    },
+    "adminPassword": {
+      "value": "Up13e6421@1"
+    },
+    "healthExtensionProtocol": {
+      "value": "http"
+    },
+    "healthExtensionPort": {
+      "value": 80
+    },
+    "healthExtensionRequestPath": {
+      "value": "/"
+    },
+    "autoRepairsPolicyEnabled": {
+      "value": false
+    },
+    "gracePeriod": {
+      "value": "PT10M"
+    },
+    "platformFaultDomainCount": {
+      "value": "5"
+    },
+    "networkSecurityGroupRules": {
+      "value": [
+        {
+          "name": "devops_inbound_deny_all",
+          "properties": {
+            "protocol": "*",
+            "sourcePortRange": "*",
+            "destinationPortRange": "*",
+            "sourceAddressPrefix": "*",
+            "destinationAddressPrefix": "*",
+            "access": "Deny",
+            "priority": 4096,
+            "direction": "Inbound",
+            "sourcePortRanges": [],
+            "destinationPortRanges": [],
+            "sourceAddressPrefixes": [],
+            "destinationAddressPrefixes": []
+          }
+        }
+      ]
+    }
+  }
+}

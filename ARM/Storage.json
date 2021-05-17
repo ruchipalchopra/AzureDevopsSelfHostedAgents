@@ -1,0 +1,201 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "subscriptionId": {
+            "type": "string",
+            "defaultValue": "[subscription().subscriptionId]"
+        },
+        "resourceGroupName": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
+        "storageAccountName": {
+            "type": "string"
+        },
+        "privateEndpointName": {
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "agentSubnetName": {
+            "type": "string"
+        },
+        "accountType": {
+            "type": "string"
+        },
+        "kind": {
+            "type": "string"
+        },
+        "accessTier": {
+            "type": "string"
+        },
+        "minimumTlsVersion": {
+            "type": "string"
+        },
+        "supportsHttpsTrafficOnly": {
+            "type": "bool"
+        },
+        "allowBlobPublicAccess": {
+            "type": "bool"
+        },
+        "allowSharedKeyAccess": {
+            "type": "bool"
+        },
+        "networkAclsBypass": {
+            "type": "string"
+        },
+        "networkAclsDefaultAction": {
+            "type": "string"
+        },
+        "privateEndpointConnectionName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('privateEndpointName'), '_', guid(resourceGroup().id))]"
+        },
+        "DNSZoneName": {
+            "type": "string",
+            "defaultValue": "[string('privatelink.blob.core.windows.net')]"
+        }
+    },
+    "variables": {
+        "rgResourceId": "[concat(
+            '/subscriptions/',
+            parameters('subscriptionId'),
+            '/resourceGroups/',
+            parameters('resourceGroupName'))]",
+        "vnetResourceId": "[concat(
+            variables('rgResourceId'),
+            '/providers/Microsoft.Network/virtualNetworks/',
+            parameters('virtualNetworkName'))]",
+        "subnetResourceId": "[concat(
+            variables('vnetResourceId'),
+            '/subnets/',
+            parameters('agentSubnetName'))]",
+        "privateEndpointConnectionId": "[concat(
+                variables('rgResourceId'),
+                '/providers/Microsoft.Network/privateEndpoints/privateLinkServiceConnections/',
+                parameters('privateEndpointConnectionName')
+            )]",
+        "privateLinkServiceId": "[concat(
+                variables('rgResourceId'),
+                '/providers/Microsoft.Storage/storageAccounts/',
+                parameters('storageAccountName')
+            )]",
+        "vnetLinkDeploymentName": "[concat(
+            parameters('DNSZoneName'), '/', uniqueString(variables('vnetResourceId')))]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('storageAccountName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                "accessTier": "[parameters('accessTier')]",
+                "minimumTlsVersion": "[parameters('minimumTlsVersion')]",
+                "supportsHttpsTrafficOnly": "[parameters('supportsHttpsTrafficOnly')]",
+                "allowBlobPublicAccess": "[parameters('allowBlobPublicAccess')]",
+                "allowSharedKeyAccess": "[parameters('allowSharedKeyAccess')]",
+                "networkAcls": {
+                    "bypass": "[parameters('networkAclsBypass')]",
+                    "defaultAction": "[parameters('networkAclsDefaultAction')]",
+                    "ipRules": []
+                }
+            },
+            "sku": {
+                "name": "[parameters('accountType')]"
+            },
+            "kind": "[parameters('kind')]",
+            "tags": {}
+        },
+        {
+            "name": "[parameters('privateEndpointName')]",
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2019-04-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "id": "[variables('privateEndpointConnectionId')]",
+                        "name": "[parameters('privateEndpointConnectionName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[variables('privateLinkServiceId')]",
+                            "groupIds": [
+                                "blob"
+                            ]
+                        }
+                    }
+                ],
+                "manualPrivateLinkServiceConnections": [],
+                "subnet": {
+                    "id": "[variables('subnetResourceId')]"
+                }
+            },
+            "tags": {}
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[parameters('DNSZoneName')]",
+            "location": "global",
+            "tags": {},
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('vnetLinkDeploymentName')]",
+            "location": "global",
+            "dependsOn": [
+                "[parameters('privateEndpointName')]"
+            ],
+            "properties": {
+                "virtualNetwork": {
+                    "id": "[string(variables('vnetResourceId'))]"
+                },
+                "registrationEnabled": false
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "[concat('EndpointDnsRecords-', parameters('storageAccountName'))]",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[parameters('DNSZoneName')]",
+                "[parameters('privateEndpointName')]",
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templatelink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "https://storage.hosting.portal.azure.net/storage/Content/4.13.393.230/DeploymentTemplates/PrivateDnsForPrivateEndpoint.json"
+                },
+                "parameters": {
+                    "privateDnsName": {
+                        "value": "[parameters('DNSZoneName')]"
+                    },
+                    "privateEndpointNicResourceId": {
+                        "value": "[first(reference(parameters('privateEndpointName')).networkInterfaces).id]"
+                    },
+                    "nicRecordsTemplateUri": {
+                        "value": "https://storage.hosting.portal.azure.net/storage/Content/4.13.393.230/DeploymentTemplates/PrivateDnsForPrivateEndpointNic.json"
+                    },
+                    "ipConfigRecordsTemplateUri": {
+                        "value": "https://storage.hosting.portal.azure.net/storage/Content/4.13.393.230/DeploymentTemplates/PrivateDnsForPrivateEndpointIpConfig.json"
+                    },
+                    "uniqueId": {
+                        "value": "2f65a5a1547c4498be081542d22d203e"
+                    },
+                    "existingRecords": {
+                        "value": {}
+                    }
+                }
+            }
+        }
+    ]
+}

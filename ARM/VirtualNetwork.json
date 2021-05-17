@@ -1,0 +1,103 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "networkSecurityGroupName": {
+        "type": "string",
+        "defaultValue": "[resourceGroup().name]",
+        "metadata": {
+          "description": "This is the name of network security group"
+        }
+      },
+       "networkSecurityGroupLocation": {
+        "type": "string",
+        "defaultValue": "[resourceGroup().location]",
+        "metadata": {
+          "description": "This is the location of network security group"
+        }
+      }, 
+      "networkSecurityGroupRules": {
+        "type": "array",
+        "metadata": {
+          "description": "Security Rules for the network security group"
+        }
+      },
+      "vnetName": {
+        "type": "string"
+      },
+      "vnetCidr": {
+        "type": "string"
+      },
+      "vnetLocation": {
+        "type": "string"
+      },
+      "agentSubnetName": {
+        "type": "string",
+        "metadata": {
+          "description": "Devops Agent subnet name"
+        }
+      },
+      "agentSubnetCidr": {
+        "type": "string",
+        "metadata": {
+          "description": "Agent subnet address range"
+        }
+      }
+    },
+    "variables": {
+      "agentSubnetProperties": {
+        "addressPrefix": "[parameters('agentSubnetCidr')]",
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('networkSecurityGroupName'))]"
+        },
+        "delegations": [],
+        "privateEndpointNetworkPolicies": "Disabled",
+        "privateLinkServiceNetworkPolicies": "Enabled"
+      }
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "apiVersion": "2020-05-01",
+        "name": "[parameters('networkSecurityGroupName')]",
+        "location": "[parameters('networkSecurityGroupLocation')]",
+        "properties": {
+          "securityRules": "[parameters('networkSecurityGroupRules')]"
+        }
+      },
+      {
+        "type": "Microsoft.Network/virtualNetworks",
+        "apiVersion": "2020-05-01",
+        "name": "[parameters('vnetName')]",
+        "location": "[parameters('vnetLocation')]",
+        "dependsOn": [
+              "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('networkSecurityGroupName'))]"
+        ],
+        "properties": {
+         "addressSpace":{
+             "addressPrefixes": [
+                 "[parameters('vnetCidr')]"
+             ]
+         },
+         "subnets": [
+             {
+                 "name": "[parameters('agentSubnetName')]",
+                 "properties": "[variables('agentSubnetProperties')]"
+             }
+         ],
+         "virtualNetworkPeerings": [],
+         "enableDdosProtection":false 
+        }       
+        },
+        {
+            "type": "Microsoft.Network/virtualnetworks/subnets",
+            "apiVersion": "2020-05-01",
+            "name": "[concat(parameters('vnetName'), '/', parameters('agentSubnetName'))]",
+            "dependsOn": [
+             "[resourceId('Microsoft.Network/virtualnetworks',parameters('vnetName'))]",
+             "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('networkSecurityGroupName'))]"
+            ],
+             "properties": "[variables('agentSubnetProperties')]"
+            }
+    ]
+  }
